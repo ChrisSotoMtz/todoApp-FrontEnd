@@ -27,9 +27,10 @@ import {
 } from "@chakra-ui/icons";
 import { ApiLink, weekday } from "../../constants";
 import { useDisclosure } from "@chakra-ui/react";
+import { useNavigate } from "react-router-dom";
 export default function todoApp() {
   let time = new Date().toLocaleTimeString();
-
+  let navigate = useNavigate();
   const weekdays = [
     "Sunday",
     "Monday",
@@ -58,6 +59,8 @@ export default function todoApp() {
   }, 1000);
 
   useEffect(() => {
+    if(!localStorage.getItem('token'))
+      navigate('/');
     setTasks([]);
     getAllTasks();
     const d = new Date();
@@ -68,7 +71,11 @@ export default function todoApp() {
 
   const getAllTasks = async () => {
     try {
-      const res = await axios.get(ApiLink + "todos");
+      const res = await axios.get(ApiLink + "todos", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
       setTasks(res.data.todos);
     } catch (err) {
       console.log("error", err);
@@ -79,9 +86,18 @@ export default function todoApp() {
     try {
       setIsLoading(true);
 
-      const res = await axios.post(ApiLink + "todos", {
-        task: newTask,
-      });
+      const res = await axios.post(
+        ApiLink + "todos",
+        {
+          task: newTask,
+          owner: localStorage.getItem("user"),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
       console.log("add res", res);
       await getAllTasks();
       setNewTask("");
@@ -95,10 +111,11 @@ export default function todoApp() {
     console.log("id", id);
     try {
       setIsLoading(true);
-      const res = await axios.delete(
-        `https://todo-app-backend-git-main-chrissotomtz.vercel.app/todos/${id}`
-      );
-      console.log("res", res);
+      const res = await axios.delete(ApiLink + `todos/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
       await getAllTasks();
       setIsLoading(false);
     } catch (err) {
@@ -110,9 +127,14 @@ export default function todoApp() {
     try {
       setIsLoading(true);
       const res = await axios.put(
-        `https://todo-app-backend-git-main-chrissotomtz.vercel.app/todos/${id}`,
+        ApiLink + `todos/${id}`,
         {
           task: newTask2,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
       );
       console.log("res", res);
@@ -124,12 +146,18 @@ export default function todoApp() {
       console.log("error", err);
     }
   };
+  const logOut = () => {
+    localStorage.removeItem("token");
+    navigate("/");
+  };
   const deleteAll = async () => {
     try {
       setIsLoading(true);
-      const res = await axios.delete(
-        `https://todo-app-backend-git-main-chrissotomtz.vercel.app/todos/`
-      );
+      const res = await axios.delete(ApiLink + `todos/`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
       console.log("res", res);
       setTasks([]);
       setIsLoading(false);
@@ -214,13 +242,23 @@ export default function todoApp() {
           </Tbody>
         </Table>
       </div>
-      <Button
-        disabled={isloading}
-        className=" mt-2 primary-button"
-        onClick={() => deleteAll()}
-      >
-        {"Delete All"}
-      </Button>
+      <div className="d-flex justify-content-around">
+        <Button
+          disabled={isloading}
+          className=" mt-2 primary-button"
+          onClick={() => deleteAll()}
+        >
+          {"Delete All"}
+        </Button>
+        <Button
+          style={{ backgroundColor: "#e45d8a", color: "#ffffff" }}
+          disabled={isloading}
+          className=" mt-2 primary-button"
+          onClick={() => logOut()}
+        >
+          {"Log out"}
+        </Button>
+      </div>
       <Modal isOpen={isOpen} onClose={onClose} className="dark-modal">
         <ModalOverlay />
         <ModalContent style={{ backgroundColor: "#1a1a1a", color: "#ffffff" }}>
