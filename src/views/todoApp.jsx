@@ -77,6 +77,7 @@ export default function todoApp() {
         },
       });
       setTasks(res.data.todos);
+      console.log("res", res.data.todos);
     } catch (err) {
       console.log("error", err);
     }
